@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>你的理財DNA人格測驗 (跨平台版)</title>
+  <!-- html2canvas for screenshot -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    :root{
+      --primary-color:#4f46e5;
+      --primary-dark:#4338ca;
+      --background-color:#f3f4f6;
+      --card-background:#ffffff;
+      --text-color:#1f2937;
+      --text-light:#6b7280;
+      --shadow-color:rgba(0,0,0,.1);
+      --secondary-color:#f59e0b;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Microsoft JhengHei","PingFang TC";
+    }
+    .hidden{display:none!important}
+    body{
+      background:var(--background-color);
+      color:var(--text-color);
+      padding:16px;margin:0;
+      min-height:100vh;box-sizing:border-box;
+      display:flex;justify-content:center;align-items:flex-start;
+    }
+    .container{width:100%;max-width:600px;margin:0 auto}
+    .card{
+      background:var(--card-background);
+      border-radius:16px;padding:24px;margin-bottom:20px;
+      box-shadow:0 4px 6px -1px var(--shadow-color),0 2px 4px -2px rgba(0,0,0,.06);
+    }
+
+    .btn{
+      padding:12px 20px;border-radius:12px;font-weight:bold;cursor:pointer;
+      transition:background-color .2s,transform .1s,opacity .2s;min-height:48px;
+      display:flex;align-items:center;justify-content:center;text-align:center;border:none;
+    }
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .btn-primary{background:var(--primary-color);color:var(--card-background)}
+    .btn-primary:hover:not(:disabled){background:var(--primary-dark)}
+    .btn-primary:active:not(:disabled){transform:scale(.98)}
+
+    /* 題目與選項大小（需求：題目1.5rem、選項1rem） */
+    .question-text{font-size:1.5rem;font-weight:600;margin-bottom:20px;color:var(--primary-dark)}
+    .btn-option{
+      background:#f9f9f9;color:var(--text-color);border:2px solid #e5e7eb;box-shadow:none;
+      justify-content:flex-start;line-height:1.5;font-size:1rem;font-weight:normal;
+    }
+    .btn-option:hover{background:#efefef}
+    .btn-back-center{justify-content:center!important}
+    .btn-selected{
+      background:#e0e7ff;border-color:var(--primary-color);color:var(--primary-dark);
+      box-shadow:0 0 0 3px rgba(79,70,229,.2);transform:scale(1.01);
+    }
+    .option-group-full{display:flex;flex-direction:column;gap:0}
+    .option-group-full .btn-option{width:100%;margin-bottom:12px}
+
+    .progress-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-top:8px}
+    .progress-fill{height:100%;background:var(--secondary-color);transition:width .4s ease-out}
+
+    .error-message{
+      color:#ef4444;font-weight:bold;text-align:center;margin-top:10px;min-height:20px;
+      padding:8px 0;background:transparent;border-radius:0;border:none;transition:opacity .3s;
+    }
+
+    /* 首頁副標：上行左、下行右；兩半「往中間靠攏」 */
+    .subtitle-p{display:flex;flex-direction:column;gap:.2rem;margin:0 0 25px 0;font-size:1.15rem;color:var(--secondary-color);font-weight:500;line-height:1.4}
+    .subtitle-p span:first-child{ text-align:left; padding-right:14%;}
+    .subtitle-p span:last-child{  text-align:right; padding-left:14%;}
+
+    /* 首頁內文字級（也會套用到「馬上開始 👉」） */
+    .home-body{font-size:1rem;color:var(--text-light);line-height:1.8;margin-bottom:30px}
+    #start-quiz-button{font-size:1rem;white-space:nowrap}
+
+    /* 結果頁 */
+    #result-section.card{padding:0;box-shadow:none;border-radius:0;background:var(--background-color)}
+    #result-card-to-capture{
+      padding:24px;border:none;background:var(--card-background);
+      box-shadow:0 4px 6px -1px var(--shadow-color),0 2px 4px -2px rgba(0,0,0,.06);
+      border-radius:16px;
+    }
+    .content-section{padding:5px;border-radius:12px;margin-bottom:15px;border:1px solid transparent;line-height:1.6}
+    .content-section p{margin:0;padding:0 13px}
+    .content-section-description{background:#f0f4ff;border-left:none}
+    .content-section-advice{background:#e6f7f2;border-left:none}
+    .result-code{font-size:1.1rem;font-weight:700;color:var(--secondary-color);text-align:center;margin-top:8px}
+
+    /* 人格名稱：括號內副標「強制換到下一行」 */
+    .result-name{
+      text-align:center;line-height:1.2;color:var(--primary-color);
+      font-weight:900;margin:0 0 6px 0;
+      font-size:2.2rem;
+    }
+    .result-name .sub{display:block;font-weight:700;font-size:1.15rem;margin-top:3px;color:var(--primary-dark)}
+
+    .result-section-title{font-size:1.1rem;font-weight:700;padding:0 5px;margin-bottom:8px}
+    .result-section-title.description-color{color:var(--primary-color)}
+    .result-section-title.advice-color{color:#10b981}
+
+    /* 結果頁兩顆按鈕要同字級、同一行、不換行 */
+    .result-actions{margin-top:25px;display:flex;gap:12px;padding:0 16px}
+    .result-actions .btn{flex:1;white-space:nowrap}
+    #download-button,#restart-button{font-size:1.1rem}
+
+    /* Toast */
+    #message-box{
+      position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+      background:var(--primary-dark);color:#fff;padding:10px 20px;border-radius:8px;
+      box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:1000;opacity:0;transition:opacity .3s, transform .3s;pointer-events:none
+    }
+    .visible{opacity:1!important;transform:translateX(-50%) translateY(0)}
+
+    /* Loading */
+    #loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.9);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:2000;font-size:1.5rem;color:var(--primary-dark)}
+    .spinner{border:4px solid rgba(0,0,0,.1);border-left-color:var(--primary-color);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin-bottom:20px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .user-id-display{font-size:.75rem;color:var(--text-light);text-align:center;padding:10px;margin-top:15px;border-top:1px dashed #e5e7eb;word-break:break-all}
+
+    /* 手機優化：防止「分享」「再玩一次」過早換行；之後用JS再微調字級 */
+    @media (max-width: 420px){
+      .result-actions .btn{font-size:1rem}
+      .result-name{font-size:2rem}
+    }
+  </style>
+</head>
+<body>
+  <!-- 載入中 -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    載入中... 正在連接您的理財資料庫...
+  </div>
+
+  <div class="container hidden" id="main-content">
+    <!-- 首頁 -->
+    <section id="home-section" class="card">
+      <div style="text-align:center;padding:20px 0;">
+        <h1 style="font-size:2.25rem;font-weight:900;margin-bottom:15px;color:var(--primary-color);">💰 你的理財DNA人格測驗</h1>
+
+        <!-- 兩行，彼此往中心靠攏（左右各 14% 內縮） -->
+        <p class="subtitle-p">
+          <span>每一個投資決定</span>
+          <span>都在揭露你的內在性格💡</span>
+        </p>
+
+        <div class="home-body">
+          <p>投資時，你會先想風險還是先看報酬？</p>
+          <p>市場一漲，你是衝進去，還是先觀望？</p>
+        </div>
+
+        <!-- 四個角色拆成兩行 -->
+        <div style="font-size:1.15rem;color:var(--primary-dark);margin-bottom:10px;font-weight:700;line-height:1.5">
+          <div>🎯分析型智者｜⚡直覺行動者</div>
+          <div>🌿穩息穩健者｜🌱價值開拓者</div>
+        </div>
+
+        <p style="font-size:1.1rem;color:var(--text-color);font-weight:900;margin-bottom:30px;">想知道自己是哪一種嗎？</p>
+
+        <p style="text-align:center;font-size:1.1rem;font-weight:600;color:var(--primary-dark);margin-bottom:15px;line-height:1.6;">
+          馬上測出你的投資性格代碼<br/>解鎖屬於你的理財角色
+        </p>
+
+        <!-- 按鈕字級 = 1rem（與首頁內文字級一致），不換行 -->
+        <button id="start-quiz-button" onclick="startQuiz(false)" class="btn btn-primary" style="width:100%;">馬上開始 👉</button>
+      </div>
+      <p class="disclaimer">本測驗結果僅供參考，不構成任何投資建議。您的作答進度將自動儲存。</p>
+    </section>
+
+    <!-- 基本資料 -->
+    <section id="info-section" class="card hidden">
+      <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:25px;color:var(--primary-dark);">來！先交個底，我們才能開始嘴砲😈</h2>
+
+      <div class="space-y-5">
+        <div>
+          <label for="user-name" style="font-weight:600;margin-bottom:5px;display:block;">你的本名是？（真的本名，不要寫「帥哥」）</label>
+          <input id="user-name" type="text" placeholder="例如：林冠豪" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        </div>
+
+        <div>
+          <span style="font-weight:600;margin-bottom:8px;display:block;">性別</span>
+          <div id="gender-group" class="option-group" style="display:flex;gap:12px;margin-top:8px;">
+            <button class="btn btn-option" data-group="gender" data-value="男" onclick="selectOption('gender','男',this)" style="flex-grow:1;">男</button>
+            <button class="btn btn-option" data-group="gender" data-value="女" onclick="selectOption('gender','女',this)" style="flex-grow:1;">女</button>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-weight:600;margin-bottom:8px;display:block;">年齡範圍</span>
+          <div id="age-group" class="option-group" style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+            <button class="btn btn-option" data-group="age" data-value="20 歲以下" onclick="selectOption('age','20 歲以下',this)" style="flex-grow:1;">20 歲以下</button>
+            <button class="btn btn-option" data-group="age" data-value="20–24 歲" onclick="selectOption('age','20–24 歲',this)" style="flex-grow:1;">20–24 歲</button>
+            <button class="btn btn-option" data-group="age" data-value="25–29 歲" onclick="selectOption('age','25–29 歲',this)" style="flex-grow:1;">25–29 歲</button>
+            <button class="btn btn-option" data-group="age" data-value="30–34 歲" onclick="selectOption('age','30–34 歲',this)" style="flex-grow:1;">30–34 歲</button>
+            <button class="btn btn-option" data-group="age" data-value="35–39 歲" onclick="selectOption('age','35–39 歲',this)" style="flex-grow:1;">35–39 歲</button>
+            <button class="btn btn-option" data-group="age" data-value="40–44 歲" onclick="selectOption('age','40–44 歲',this)" style="flex-grow:1;">40–44 歲</button>
+            <button class="btn btn-option" data-group="age" data-value="45–49 歲" onclick="selectOption('age','45–49 歲',this)" style="flex-grow:1;">45–49 歲</button>
+            <button class="btn btn-option" data-group="age" data-value="50 歲以上" onclick="selectOption('age','50 歲以上',this)" style="flex-grow:1;">50 歲以上</button>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-weight:600;margin-bottom:8px;display:block;">投資經驗</span>
+          <div id="experience-group" class="option-group-full">
+            <button class="btn btn-option" data-group="experience" data-value="我還在了解怎麼運作，先看看而已" onclick="selectOption('experience','我還在了解怎麼運作，先看看而已',this)">我還在了解怎麼運作，先看看而已</button>
+            <button class="btn btn-option" data-group="experience" data-value="我有下過單，算是邊做邊學" onclick="selectOption('experience','我有下過單，算是邊做邊學',this)">我有下過單，算是邊做邊學</button>
+            <button class="btn btn-option" data-group="experience" data-value="我固定有在投資，算日常的一部分了" onclick="selectOption('experience','我固定有在投資，算日常的一部分了',this)">我固定有在投資，算日常的一部分了</button>
+            <button class="btn btn-option" data-group="experience" data-value="投資基本上是我的日常運動之一" onclick="selectOption('experience','投資基本上是我的日常運動之一',this)">投資基本上是我的日常運動之一</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="info-error-message" class="error-message hidden">還沒填完喔 👀</div>
+
+      <button onclick="handleInfoSubmit()" class="btn btn-primary" style="width:100%;margin-top:20px;">開始測驗！</button>
+      <div id="user-info-id" class="user-id-display hidden"></div>
+    </section>
+
+    <!-- 測驗 -->
+    <section id="quiz-section" class="card hidden">
+      <div style="font-size:.9rem;color:var(--text-light);font-weight:500;display:flex;justify-content:space-between;align-items:center;">
+        <span>題目進度：<span id="current-progress">1/8</span></span>
+        <span style="color:var(--secondary-color);">理財人格探索中...</span>
+      </div>
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%;"></div></div>
+
+      <div id="question-area" style="margin-top:30px;margin-bottom:20px;"></div>
+
+      <div id="quiz-error-message" class="error-message hidden">你忘記按上面選項啦👆</div>
+
+      <div class="option-group" style="margin-top:20px;display:flex;gap:12px;">
+        <button id="back-button" onclick="prevQuestion()" class="btn btn-option btn-back-center" style="flex:1;color:var(--text-color);">上一題</button>
+        <button id="next-button" onclick="nextQuestion()" class="btn btn-primary" style="flex:1;">下一題</button>
+      </div>
+    </section>
+
+    <!-- 結果 -->
+    <section id="result-section" class="card hidden">
+      <div id="result-pre-greeting" style="text-align:center;font-size:1.5rem;font-weight:700;color:var(--primary-dark);margin-bottom:20px;line-height:1.5;"></div>
+
+      <div id="result-card-to-capture">
+        <div id="result-display-area"></div>
+        <p id="personal-summary" style="font-size:.85rem;color:var(--text-light);text-align:center;margin-top:20px;padding-top:15px;border-top:1px dashed #e5e7eb;"></p>
+      </div>
+
+      <div class="result-actions">
+        <button id="download-button" onclick="downloadResultImage()" class="btn btn-primary" style="background:var(--secondary-color);">分享我的理財人格👻</button>
+        <button id="restart-button" onclick="resetQuiz()" class="btn btn-back-center" style="background:#eef2ff;color:var(--primary-dark);border:2px solid #c7d2fe;font-weight:600;">再玩一次</button>
+      </div>
+
+      <p class="disclaimer" style="padding:10px 16px;">本測驗結果已同步儲存於雲端，您可以隨時查看。</p>
+    </section>
+
+    <div id="message-box" class="message-box hidden"></div>
+  </div>
+
+  <script type="module">
+    // Firebase imports (kept to avoid breaking your code path, still supports mock/local)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- State ---
+    let db, auth;
+    let userId = 'loading';
+    let isAuthReady = false;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const isMock = !firebaseConfig || !firebaseConfig.apiKey;
+
+    let userInfo = {};
+    let currentQuestionIndex = 0;
+    const totalQuestions = 8;
+    let answerHistory = Array(totalQuestions).fill(null);
+    let selectedChoiceValue = null;
+    let resultData = null;
+    let hasSavedResult = false;
+
+    const scoreMap = {
+      1:{A:'ASC',B:'ARC',C:'ISC',D:'IRN'},
+      2:{A:'ISC',B:'ARC',C:'ARC',D:'ASC'},
+      3:{A:'ARC',B:'ASC',C:'ISC',D:'ISC'},
+      4:{A:'ASC',B:'ARC',C:'IRN',D:'ISC'},
+      5:{A:'ASC',B:'ARC',C:'IRN',D:'ISC'},
+      6:{A:'ASC',B:'ARC',C:'ISC',D:'IRN'},
+      7:{A:'ASC',B:'ARC',C:'ARC',D:'ISC'},
+      8:{A:'ASC',B:'ARC',C:'IRN',D:'ISC'}
+    };
+
+    const quizQuestions = [
+      {q:"你拿到 10 萬年終的第一反應？",options:[
+        "終於有彈藥！研究幾個標的，該出手了🔥",
+        "先拿去存一半，剩下一半再投資，比較穩",
+        "想去旅遊或犒賞自己，人生要及時行樂",
+        "拿去問ChatGPT看該買哪支ETF（誤）"
+      ]},
+      {q:"朋友說某檔 ETF「人人都在買」，你會？",options:["冷靜查資料，看它憑什麼紅","小試一張，感覺不錯就多買點","大家都買了我不能錯過啊！","我對熱門的東西一律警戒"]},
+      {q:"看到股價跌 5%，你會？",options:["開心！又可以撿便宜","觀望幾天，搞不好會再跌","有點焦躁但還能撐","關APP假裝沒看到"]},
+      {q:"你投資最常靠什麼？",options:["數據報表＋邏輯分析","心中小劇場：「我感覺它會漲！」","群組裡大家都說不錯，那應該穩吧？","看設計感，有質感的企業我就想投"]},
+      {q:"投資對你像哪種遊戲？",options:["模擬城市：我規劃長遠，慢慢建","俄羅斯方塊：需要反應快、手腳俐落","密室逃脫：刺激、有風險但有成就感","動森：只要穩定存錢、看島上成長就開心"]},
+      {q:"帳戶會怎麼形容你？",options:[
+        "「紀律派代表！你連我都敬佩😌」",
+        "「你是變化多端的藝術家，一天一個想法」",
+        "「你很穩，但有時也太佛了吧？」",
+        "「你常半夜登入，衝一波又秒登出😂」"
+      ]},
+      {q:"市場大漲時你會？",options:[
+        "冷靜提醒自己「別被貪婪控制」",
+        "看一下有沒有機會補倉",
+        "衝進去啊！錯過會睡不著！",
+        "幫朋友開心，自己不敢動"
+      ]},
+      {q:"你理想的投資生活是？",options:[
+        "系統化、能自動幫我執行",
+        "自己掌控節奏、有彈性調整",
+        "和朋友討論、一起學習成長",
+        "投資只是生活的一部分，不想太緊繃"
+      ]}
+    ];
+
+    const personae = {
+      ASC:{name:"理性控管者",subName:"（分析型智者）",tagline:"穩中求勝，絕不亂押",
+        description:"　你是那種看到「穩定報酬5%」就覺得心安的人。對你來說，世界要有秩序，生活要有規劃。你習慣在行動前先想清楚，日常連出門旅行都會列清單。別人說你慢，其實你只是不喜歡浪費。<br>　你常在腦中做小算盤：這樣做值不值？這個選擇長期划不划算？你對風險的敏感度比多數人高，也很難容忍「沒把事情做好」的自己。你不追求華麗的輸贏，而是希望每一步都合理、有邏輯、有意義。在人際裡，你是能讓人信任的那個；在愛情裡，你不太花言巧語，但會默默記得對方喜歡什麼、討厭什麼，照顧細節比甜言蜜語更能表達你的在乎。<br>　在投資上，你也是這樣——先研究、再行動。你不怕賺得慢，只怕亂了節奏。市場波動時你不慌張，因為你早就設定好停損與目標。",
+        advice:"【投資特徵】<br>．習慣先研究再動作，偏好有數據支撐的決策<br>．對投資報酬率的波動容忍度低<br>．能在市場恐慌中保持冷靜，擅長資產分配與風險控管<br><br>【專業建議】<br>你適合採用長期配置與系統化紀律投資的模式<br>✅ ETF定期定額、配息再投入<br>✅ 使用資產配置比例（如60/40）控制風險<br>✅ 將理財自動化，減少情緒干擾<br><br>你是投資裡的「建築師」——一步步設計好未來，最後看著財務藍圖穩穩成形。"
+      },
+      ARC:{name:"主動獵手",subName:"（直覺行動者）",tagline:"看到機會，就先卡位",
+        description:"　你是那種「只要腦中有靈感，手就會先動」的人。你行動快、反應快，對變化特別有感覺。你不喜歡拖，喜歡在最熱的時候出擊。有時候別人還在猶豫，你已經完成決策，甚至開始下一步。<br>　你對生活的態度是「我不一定最穩，但一定最真」。你相信實戰比規劃重要，覺得機會是留給敢衝的人。你的人格裡帶著天生的自信與表現慾，擅長在不確定中找方向。愛情裡的你熱烈又直接，感覺對了就投入，但也需要對方懂得給空間，因為你害怕被綁住，不想被控制節奏。<br>　在投資上，你就是「市場節奏捕手」。你敢進、敢退，願意試錯。你享受波動的刺激，懂得利用短期節奏獲利；只是有時候，你衝太快，忘了替自己設安全繩。",
+        advice:"【投資特徵】<br>．喜歡掌握即時市場資訊、追熱門題材<br>．行動果斷，成功率高時自信爆棚<br>．容易受市場情緒影響，但反應速度快<br><br>【專業建議】<br>你的強項是「行動力」與「市場嗅覺」，建議結合\"戰術性操作＋核心資產配置\"<br>⚡ 用20%～30%資金操作主題ETF、短線標的、AI、電動車等題材。<br>🛡️ 其餘70%～80%保留於穩健商品（高股息ETF、美債、美元定存）。<br><br>你天生是投資的「戰術家」，只要記得替自己留後路，市場的起落，反而會成為你的遊樂場。"
+      },
+      ISC:{name:"生活守護者",subName:"（穩息穩健者）",tagline:"投資是為了過得安心，不是為了心臟病",
+        description:"　你是那種最怕「突發狀況」的人。你喜歡生活有節奏、步調可預測。朋友說你溫和、穩定、好相處，但你其實有自己的一套原則。你在意細節，不喜歡太多不確定；你會準備備案、備份，因為這樣才能安心。你做事踏實，不喜歡搶風頭，寧願穩穩地做好每一件事。<br>　在人際中，你是那個默默付出、讓大家都覺得舒服的存在。在愛情裡，你不喜歡太多戲劇性，最怕情緒化的人。你要的不是驚喜，而是能一起生活下去的安定。<br>　在投資上，你追求的也是這份安定。你不喜歡賺快錢，也不想被波動搞得焦慮。你相信錢該「有節奏地長」，就像人生該穩穩前進。",
+        advice:"【投資特徵】<br>☘️ 以長期安心為優先，不追高、不殺低<br>☘️ 喜歡穩定領息、穩定增值的商品<br>☘️ 建立三～六個月生活預備金<br>☘️ 將部分資金轉為定期收入來源（如月配息基金）<br><br>【專業建議】<br>你適合 現金流導向型投資<br>☘️ 存股、配息ETF、債券基金<br>☘️ 建立三～六個月生活預備金<br>☘️ 將部分資金轉為定期收入來源（如月配息基金）<br><br>投資對你而言，應該像泡咖啡：節奏剛好、香氣穩定，不急不躁。你的成功，不在賺得多，而是長久地「活得輕鬆」。"
+      },
+      IRN:{name:"成長合夥人",subName:"（價值開拓者）",tagline:"一起研究，一起變強",
+        description:"　你是那種看到新觀點就想立刻查資料的人。你對世界充滿好奇，喜歡理解背後的邏輯。你不一定是最激進的，但你永遠在進步。你願意學、願意問，也願意聽不同的想法。你的人格溫和、有耐性，不輕易批評別人。你相信每個人都有自己的步調，只要願意努力，就會變好。你重視「成長」這兩個字，不只是金錢上的，也包括思考與心靈。<br>　在愛情裡，你希望能和對方一起成長、一起學習。你不需要被照顧，只希望被理解。對你來說，關係最動人的地方，不是浪漫的驚喜，而是能並肩進步、一起變得更好。<br>　投資對你而言，是學習的一部分。你不怕研究、不怕花時間，會比較報酬率、記錄心得，從每次操作裡學經驗。你不是最快的，但你走得最久，因為你明白：穩定成長，才是最長遠的勝利。",
+        advice:"【投資特徵】<br>．喜歡交流想法、吸收他人觀點<br>．對投資知識有熱忱，學得快、記得久<br>．通常投資節奏穩定、紀律性高<br><br>【專業建議】<br>你適合 學習導向＋成長型投資<br>📘 維持投資筆記習慣（紀錄想法與結果）<br>📘 參加投資社群或學習課程<br>📘 可延伸接觸量化策略、基本面研究、海外ETF<br><br>你是「投資世界的共學夥伴」——當別人孤軍奮戰時，你用分享讓自己更強。你的成長速度，會比你想像的快得多。"
+      }
+    };
+
+    // expose for inline handlers
+    window.startQuiz = startQuiz;
+    window.selectOption = selectOption;
+    window.handleInfoSubmit = handleInfoSubmit;
+    window.prevQuestion = prevQuestion;
+    window.nextQuestion = nextQuestion;
+    window.downloadResultImage = downloadResultImage;
+    window.resetQuiz = resetQuiz;
+    window.selectAnswer = selectAnswer;
+
+    // ---------- persistence ----------
+    function getQuizDocRef(){ return doc(db,'artifacts',appId,'users',userId,'quiz_results','current'); }
+    function getLocalKey(){ const uid=(typeof userId!=='undefined'&&userId&&userId!=='loading')?userId:'anon'; return `${appId||'default'}__${uid}__quiz_state_v1`; }
+    function saveStateToLocal(){
+      try{ const s={userInfo,currentQuestionIndex,answerHistory,resultData,hasSavedResult}; localStorage.setItem(getLocalKey(),JSON.stringify(s)); }catch(e){ console.warn(e); }
+    }
+    function loadStateFromLocal(){
+      try{
+        const raw=localStorage.getItem(getLocalKey()); if(!raw) return false;
+        const s=JSON.parse(raw);
+        userInfo=s.userInfo||{}; currentQuestionIndex=s.currentQuestionIndex||0;
+        answerHistory=Array.isArray(s.answerHistory)?s.answerHistory:answerHistory;
+        resultData=s.resultData||null; hasSavedResult=!!s.hasSavedResult; return true;
+      }catch(e){ console.warn(e); return false;}
+    }
+    async function saveQuizStateToFirestore(){
+      if(isMock||!isAuthReady||userId==='anonymous'){ saveStateToLocal(); return; }
+      const state={userInfo,currentQuestionIndex,answerHistory:JSON.stringify(answerHistory),resultData:resultData?JSON.stringify(resultData):null,hasSavedResult,updatedAt:new Date().toISOString()};
+      try{ await setDoc(getQuizDocRef(),state,{merge:true}); }catch(e){ console.error(e); saveStateToLocal(); }
+    }
+    async function loadQuizStateFromFirestore(){
+      if(isMock||!isAuthReady||userId==='anonymous'){
+        const ok=loadStateFromLocal(); if(ok){ restoreInfoSelections(); } return ok;
+      }
+      try{
+        const snap=await getDoc(getQuizDocRef());
+        if(snap.exists()){
+          const d=snap.data();
+          userInfo=d.userInfo||{}; restoreInfoSelections();
+          currentQuestionIndex=d.currentQuestionIndex||0;
+          try{ answerHistory=d.answerHistory?JSON.parse(d.answerHistory):Array(totalQuestions).fill(null); }catch{ answerHistory=Array(totalQuestions).fill(null); }
+          hasSavedResult=!!d.hasSavedResult; resultData=d.resultData?JSON.parse(d.resultData):null; saveStateToLocal(); return true;
+        }
+        const ok=loadStateFromLocal(); if(ok) restoreInfoSelections(); return ok;
+      }catch(e){ console.error(e); const ok=loadStateFromLocal(); if(ok) restoreInfoSelections(); return ok; }
+    }
+    function restoreInfoSelections(){
+      document.getElementById('user-name').value=userInfo.name||'';
+      ['gender','age','experience'].forEach(g=>{
+        if(userInfo[g]){
+          const btn=document.querySelector(`#${g}-group button[data-value="${userInfo[g]}"]`);
+          if(btn) btn.classList.add('btn-selected');
+        }
+      });
+    }
+
+    // ---------- UI helpers ----------
+    function showSection(id){
+      ['home-section','info-section','quiz-section','result-section'].forEach(s=>{
+        const el=document.getElementById(s); if(el) el.classList.toggle('hidden', s!==id);
+      });
+      window.scrollTo(0,0);
+    }
+    async function startQuiz(isResume){
+      if(isResume){
+        if(hasSavedResult&&resultData){ showResult(resultData.code); return; }
+        if(currentQuestionIndex>0){ showSection('quiz-section'); renderQuestion(currentQuestionIndex); return; }
+      }else{
+        userInfo={name:'',gender:'',age:'',experience:''};
+        document.getElementById('user-name').value='';
+        document.querySelectorAll('#gender-group .btn-selected,#age-group .btn-selected,#experience-group .btn-selected').forEach(b=>b.classList.remove('btn-selected'));
+        currentQuestionIndex=0; answerHistory=Array(totalQuestions).fill(null); selectedChoiceValue=null; resultData=null; hasSavedResult=false;
+        await saveQuizStateToFirestore();
+      }
+      document.getElementById('info-error-message').classList.add('hidden');
+      showSection('info-section');
+      ['gender','age','experience'].forEach(g=>{
+        const v=userInfo[g]; if(v){ const btn=document.querySelector(`#${g}-group button[data-value="${v}"]`); if(btn) btn.classList.add('btn-selected');}
+      });
+    }
+    function selectOption(group,value,el){
+      const wrap=document.getElementById(`${group}-group`);
+      wrap.querySelectorAll('.btn-option').forEach(b=>b.classList.remove('btn-selected'));
+      el.classList.add('btn-selected'); userInfo[group]=value; document.getElementById('info-error-message').classList.add('hidden');
+    }
+    async function handleInfoSubmit(){
+      userInfo.name=document.getElementById('user-name').value.trim();
+      const ok=['name','gender','age','experience'].every(f=>userInfo[f]&&userInfo[f]!=='' );
+      const err=document.getElementById('info-error-message'); if(!ok){ err.classList.remove('hidden'); return; }
+      await saveQuizStateToFirestore();
+      err.classList.add('hidden'); showSection('quiz-section'); renderQuestion(currentQuestionIndex);
+    }
+    function showMessage(msg,d=3000){
+      const box=document.getElementById('message-box'); box.textContent=msg; box.classList.remove('hidden');
+      setTimeout(()=>box.classList.add('visible'),10);
+      setTimeout(()=>{ box.classList.remove('visible'); setTimeout(()=>box.classList.add('hidden'),300); },d);
+    }
+
+    // ======= 自動縮字以「單行顯示、不換行」的工具 =======
+    function fitOneLine(el,{minRem=0.8,maxRem=1.2,step=0.02}={}){
+      el.style.whiteSpace='nowrap';
+      let size=parseFloat(getComputedStyle(el).fontSize)/16; // rem
+      size=Math.min(size,maxRem);
+      const maxWidth=el.clientWidth; // 可用寬度（含padding）
+      // 若本來沒超出就嘗試放大到上限
+      while(size+step<=maxRem){
+        el.style.fontSize=`${(size+step)}rem`;
+        if(el.scrollWidth>el.clientWidth){ el.style.fontSize=`${size}rem`; break; }
+        size+=step;
+      }
+      // 若仍超出就往下縮
+      while(el.scrollWidth>el.clientWidth && size-step>=minRem){
+        size-=step; el.style.fontSize=`${size}rem`;
+      }
+      return size;
+    }
+
+    // 對一組按鈕求「同一頁一致字級」且都單行
+    function fitOptionsUniform(optionsNodeList,{minRem=0.85,maxRem=1.05}={}){
+      let target=maxRem;
+      optionsNodeList.forEach(btn=>{
+        btn.style.whiteSpace='nowrap';
+        btn.style.fontSize=`${maxRem}rem`;
+        // 若超出就逐步下降直到單行
+        let size=maxRem;
+        while(btn.scrollWidth>btn.clientWidth && size>minRem){
+          size -= 0.02; btn.style.fontSize=`${size}rem`;
+        }
+        target=Math.min(target,size);
+      });
+      // 套同一字級
+      optionsNodeList.forEach(btn=>btn.style.fontSize=`${target}rem`);
+      return target;
+    }
+
+    function renderQuestion(index){
+      currentQuestionIndex=index;
+      const q=quizQuestions[index];
+      const saved=answerHistory[index];
+      selectedChoiceValue=saved?saved.choice:null;
+
+      const area=document.getElementById('question-area');
+      area.innerHTML = `
+        <div class="question-text">Q${index+1}. ${q.q}</div>
+        <div id="options-container" class="option-group-full">
+          ${q.options.map((t,i)=>{
+            const choice=String.fromCharCode(65+i);
+            const sel=selectedChoiceValue===choice?'btn-selected':'';
+            return `<button class="btn btn-option ${sel}" data-choice="${choice}" onclick="selectAnswer(${index},'${choice}',this)"><span>${choice}. </span><span>${t}</span></button>`;
+          }).join('')}
+        </div>
+      `;
+
+      document.getElementById('current-progress').textContent=`${index+1}/${totalQuestions}`;
+      document.getElementById('progress-fill').style.width=`${((index+1)/totalQuestions)*100}%`;
+      document.getElementById('back-button').disabled = index===0;
+      document.getElementById('next-button').textContent = index===totalQuestions-1 ? '看結果！':'下一題';
+      document.getElementById('quiz-error-message').classList.add('hidden');
+
+      // ===== 手機特殊題目(Q1、Q5、Q6)單行處理與同頁一致字級 =====
+      if (window.matchMedia('(max-width: 480px)').matches && [0,4,5].includes(index)){
+        const nodes = area.querySelectorAll('#options-container .btn-option');
+        // 依照你的觀察「常從倒數第二/第三個字換行」，這裡直接以容器可用寬度計算，求同一頁的最大可用字級
+        fitOptionsUniform(nodes,{minRem:0.86,maxRem:1.02});
+      } else {
+        // 其他題恢復預設 1rem
+        const nodes = area.querySelectorAll('#options-container .btn-option');
+        nodes.forEach(n=>n.style.fontSize='1rem');
+      }
+      saveQuizStateToFirestore();
+    }
+
+    function selectAnswer(qIndex,choice,el){
+      const wrap=document.getElementById('options-container');
+      wrap.querySelectorAll('.btn-option').forEach(b=>b.classList.remove('btn-selected'));
+      el.classList.add('btn-selected'); selectedChoiceValue=choice;
+      document.getElementById('quiz-error-message').classList.add('hidden');
+
+      const qNum=qIndex+1; const score=scoreMap[qNum][choice];
+      answerHistory[qIndex]={q:qNum,choice,scoreCode:score};
+      saveQuizStateToFirestore();
+    }
+    function nextQuestion(){
+      if(!selectedChoiceValue){ document.getElementById('quiz-error-message').classList.remove('hidden'); return; }
+      document.getElementById('quiz-error-message').classList.add('hidden');
+      if(currentQuestionIndex===totalQuestions-1){ calculateResult(); } else { renderQuestion(currentQuestionIndex+1); }
+    }
+    function prevQuestion(){ if(currentQuestionIndex>0) renderQuestion(currentQuestionIndex-1); }
+
+    function calculateResult(){
+      const cnt={ASC:0,ARC:0,ISC:0,IRN:0};
+      answerHistory.forEach(a=>{ if(a&&cnt.hasOwnProperty(a.scoreCode)) cnt[a.scoreCode]++; });
+      let max=-1,code='';
+      for(const k in cnt){
+        if(cnt[k]>max){max=cnt[k]; code=k;}
+        else if(cnt[k]===max){ if(code===''||k.localeCompare(code)<0) code=k; }
+      }
+      resultData = {...personae[code], code};
+      hasSavedResult=true; saveQuizStateToFirestore(); showResult(code);
+    }
+
+    function showResult(code){
+      const r=resultData; showSection('result-section');
+      const name=userInfo.name && userInfo.name!=='' ? userInfo.name : '理財探索者';
+      document.getElementById('result-pre-greeting').innerHTML=`嗨，${name}<br>你的理財人格結果出爐✨`;
+
+      document.getElementById('result-display-area').innerHTML = `
+        <div class="result-code">${code}</div>
+        <div class="result-name"><span class="main">${r.name}</span><span class="sub">${r.subName}</span></div>
+        <div class="result-tagline" style="font-size:1rem;font-weight:500;color:var(--text-light);text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px dashed #e5e7eb;">「${r.tagline}」</div>
+
+        <div class="result-section-title description-color">描述 (DESCRIPTION)</div>
+        <div class="content-section content-section-description"><p>${r.description}</p></div>
+
+        <div class="result-section-title advice-color">投資小學堂 (ADVICE)</div>
+        <div class="content-section content-section-advice"><p>${r.advice}</p></div>
+      `;
+
+      document.getElementById('personal-summary').innerHTML =
+        `根據你的年齡 (${userInfo.age}) 和投資經驗 (${userInfo.experience})，你的潛力為 ${r.tagline}！繼續保持你的優勢吧。`;
+
+      // 結果頁兩顆按鈕：行動端不換行且同字級
+      const dlBtn=document.getElementById('download-button');
+      const reBtn=document.getElementById('restart-button');
+      if (window.matchMedia('(max-width: 480px)').matches){
+        const s1=fitOneLine(dlBtn,{minRem:0.9,maxRem:1.1});
+        reBtn.style.fontSize=`${s1}rem`; fitOneLine(reBtn,{minRem:0.9,maxRem:1.1});
+      }
+    }
+
+    function resetQuiz(){
+      userInfo={name:'',gender:'',age:'',experience:''};
+      currentQuestionIndex=0; answerHistory=Array(totalQuestions).fill(null);
+      selectedChoiceValue=null; resultData=null; hasSavedResult=false;
+      document.getElementById('user-name').value='';
+      document.querySelectorAll('.btn-selected').forEach(b=>b.classList.remove('btn-selected'));
+      saveQuizStateToFirestore(); showSection('home-section'); showMessage('測驗已重置，歡迎再次探索！',2000);
+    }
+
+    // ====== 分享：直接分享 PNG 圖片（Web Share Level 2），不再丟連結 ======
+    async function downloadResultImage(){
+      const element=document.getElementById('result-card-to-capture');
+      const name=userInfo.name && userInfo.name!=='' ? userInfo.name : '理財探索者';
+      const fileName=`${name}_理財DNA測驗結果.png`;
+
+      try{
+        const canvas = await html2canvas(element,{scale:2,useCORS:true,backgroundColor:'#ffffff'});
+        const blob = await new Promise(res=>canvas.toBlob(b=>res(b),'image/png',1));
+        // 若瀏覽器支援分享圖片（大多數 Android/部分 iOS）
+        if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob],'x.png',{type:'image/png'})] })) {
+          const file = new File([blob], fileName, {type:'image/png'});
+          await navigator.share({ files:[file], text:`我的理財人格：${resultData?.name}` });
+          return;
+        }
+        // 退而求其次：直接下載圖片
+        const link=document.createElement('a'); link.download=fileName; link.href=URL.createObjectURL(blob); link.click();
+        showMessage('結果圖片已自動下載！');
+      }catch(err){
+        console.error('分享/下載失敗',err); showMessage('無法分享圖片，已改為下載。');
+      }
+    }
+
+    // ====== Init ======
+    async function init(){
+      // 讓首頁「馬上開始 👉」在行動端維持單行
+      const startBtn=document.getElementById('start-quiz-button');
+      if (window.matchMedia('(max-width: 480px)').matches){ fitOneLine(startBtn,{minRem:0.95,maxRem:1.05}); }
+
+      if(isMock || !firebaseConfig.apiKey){
+        const ok=loadStateFromLocal();
+        setHomeStartButton();
+        document.getElementById('loading-overlay').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
+        return;
+      }
+      try{
+        const app=initializeApp(firebaseConfig); db=getFirestore(app); auth=getAuth(app);
+        if(typeof __initial_auth_token!=='undefined'){ await signInWithCustomToken(auth,__initial_auth_token); } else { await signInAnonymously(auth); }
+        userId=auth.currentUser?.uid||'anonymous'; isAuthReady=true;
+
+        const loaded=await loadQuizStateFromFirestore();
+        setHomeStartButton();
+        document.getElementById('user-info-id').textContent=`User ID (跨平台連動識別碼): ${userId}`;
+        document.getElementById('user-info-id').classList.remove('hidden');
+        document.getElementById('loading-overlay').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
+      }catch(e){
+        console.error('Firebase init failed, fallback local',e);
+        const ok=loadStateFromLocal(); setHomeStartButton();
+        document.getElementById('loading-overlay').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
+      }
+
+      // 視窗改變時，重新微調目前畫面的單行排版
+      window.addEventListener('resize', ()=>{
+        const secIds=['home-section','quiz-section','result-section'];
+        if(!secIds.some(id=>!document.getElementById(id).classList.contains('hidden'))) return;
+      });
+    }
+
+    function setHomeStartButton(){
+      const btn=document.getElementById('start-quiz-button');
+      if (hasSavedResult && resultData){ btn.textContent='查看我的結果 ✨'; btn.onclick=()=>showResult(resultData.code); }
+      else if (currentQuestionIndex>0){ btn.textContent=`繼續測驗 (Q${currentQuestionIndex+1}/8) 🚀`; btn.onclick=()=>startQuiz(true); }
+      else { btn.textContent='馬上開始 👉'; btn.onclick=()=>startQuiz(false); }
+      if (window.matchMedia('(max-width: 480px)').matches){ fitOneLine(btn,{minRem:0.95,maxRem:1.05}); }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
